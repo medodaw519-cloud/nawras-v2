@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>النورس للتوصيل — v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#08090f;--bg2:#0e1018;--bg3:#141620;--bg4:#1b1e2c;--bg5:#232740;
+  --rim:#252a3d;--rim2:#2e3550;--dim:#4a5270;--mute:#6b7498;--pale:#9daad0;--white:#e8eeff;
+  --gold:#f5c842;--gd:rgba(245,200,66,.15);--gb:rgba(245,200,66,.3);
+  --red:#ff3a5c;--rd:rgba(255,58,92,.14);--rb:rgba(255,58,92,.3);
+  --grn:#22d896;--grd:rgba(34,216,150,.13);--grb:rgba(34,216,150,.28);
+  --blu:#4f8aff;--bld:rgba(79,138,255,.14);--blb:rgba(79,138,255,.3);
+  --orn:#ff7c2a;--ord:rgba(255,124,42,.13);
+  --pur:#9b6dff;--prd:rgba(155,109,255,.13);
+  --wa:#25d366;--wad:rgba(37,211,102,.15);
+  --font:'Tajawal',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --r:12px;--r2:8px;--r3:6px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--white);min-height:100vh;font-size:14px;overflow-x:hidden}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:none;align-items:center;justify-content:center}
+.lbox{background:var(--bg3);border:1px solid var(--rim2);border-radius:18px;padding:44px 38px;width:400px;max-width:95vw;text-align:center}
+.llogo{font-size:48px;margin-bottom:8px}
+.lbrand{font-size:22px;font-weight:900;color:var(--gold);margin-bottom:4px}
+.lsub{font-size:12px;color:var(--mute);margin-bottom:32px}
+.lbox label{display:block;text-align:right;font-size:11px;font-weight:700;color:var(--pale);margin:14px 0 5px}
+.lbox input{width:100%;padding:11px 14px;background:var(--bg2);border:1px solid var(--rim);border-radius:var(--r2);color:var(--white);font-family:var(--font);font-size:14px}
+.lbox input:focus{outline:none;border-color:var(--gold)}
+.lbtn{width:100%;margin-top:24px;padding:13px;background:var(--gold);border:none;border-radius:var(--r2);color:var(--bg);font-size:15px;font-weight:800;font-family:var(--font);cursor:pointer}
+.lerr{color:var(--red);font-size:12px;margin-top:10px;display:none}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--bg);z-index:8000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:42px;height:42px;border:3px solid var(--rim2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading.hide{display:none}
+
+/* TOPBAR */
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--rim);display:flex;align-items:center;padding:0 18px;gap:12px;position:sticky;top:0;z-index:200}
+.tlogo{font-size:17px;font-weight:900;color:var(--gold)}
+.tlogo small{font-size:11px;color:var(--mute);font-weight:400;margin-right:6px}
+.tspace{flex:1}
+.sync-ok{display:flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:99px;background:var(--grd);color:var(--grn)}
+.sync-err{background:var(--rd);color:var(--red)}
+.sync-busy{background:var(--gd);color:var(--gold)}
+.sdot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.tclock{font-family:var(--mono);font-size:11px;color:var(--mute);background:var(--bg);padding:3px 9px;border-radius:var(--r3);border:1px solid var(--rim)}
+.tuser{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--pale)}
+.tav{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--pur),var(--blu));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px}
+.lout{background:none;border:1px solid var(--rim);color:var(--mute);padding:4px 10px;border-radius:var(--r3);cursor:pointer;font-family:var(--font);font-size:11px}
+.lout:hover{border-color:var(--red);color:var(--red)}
+
+/* TABS */
+.tabs{background:var(--bg2);border-bottom:1px solid var(--rim);padding:0 18px;display:flex;gap:2px;overflow-x:auto}
+.tab{padding:11px 16px;cursor:pointer;font-size:13px;font-weight:600;color:var(--mute);border-bottom:2px solid transparent;white-space:nowrap}
+.tab:hover{color:var(--pale)}.tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.tbadge{background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:9px}
+
+/* PAGES */
+.page{display:none;padding:18px;animation:fade .2s ease}.page.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* KPI */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+.kcard{background:var(--bg3);border:1px solid var(--rim);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
+.kcard::before{content:'';position:absolute;top:0;right:0;left:0;height:3px}
+.kcard.gold::before{background:var(--gold)}.kcard.red::before{background:var(--red)}
+.kcard.grn::before{background:var(--grn)}.kcard.blu::before{background:var(--blu)}
+.kcard.orn::before{background:var(--orn)}.kcard.pur::before{background:var(--pur)}
+.kval{font-size:32px;font-weight:900;font-family:var(--mono);line-height:1}
+.kcard.gold .kval{color:var(--gold)}.kcard.red .kval{color:var(--red)}
+.kcard.grn .kval{color:var(--grn)}.kcard.blu .kval{color:var(--blu)}
+.kcard.orn .kval{color:var(--orn)}.kcard.pur .kval{color:var(--pur)}
+.klbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--mute);margin-bottom:6px}
+
+/* CARD */
+.card{background:var(--bg3);border:1px solid var(--rim);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.ctitle{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--bg4);padding:9px 12px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);border-bottom:1px solid var(--rim);white-space:nowrap}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--rim);color:var(--pale);white-space:nowrap;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.pr:hover td{background:var(--bg4);cursor:pointer}
+.code-cell{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blu)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-red{background:var(--rd);color:var(--red)}.b-grn{background:var(--grd);color:var(--grn)}
+.b-gold{background:var(--gd);color:var(--gold)}.b-blu{background:var(--bld);color:var(--blu)}
+.b-orn{background:var(--ord);color:var(--orn)}.b-pur{background:var(--prd);color:var(--pur)}
+.b-dim{background:var(--bg5);color:var(--mute)}
+.dp-c{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--r3);font-family:var(--mono);font-size:11px;font-weight:700;background:var(--rd);color:var(--red);border:1px solid var(--rb)}
+.dp-w{background:var(--gd);color:var(--gold);border:1px solid var(--gb);display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--r3);font-family:var(--mono);font-size:11px;font-weight:700}
+.dp-o{background:var(--grd);color:var(--grn);border:1px solid var(--grb);display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--r3);font-family:var(--mono);font-size:11px;font-weight:700}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--r2);border:none;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn-gold{background:var(--gold);color:var(--bg)}.btn-red{background:var(--red);color:#fff}
+.btn-grn{background:var(--grn);color:var(--bg)}.btn-wa{background:var(--wa);color:#fff}
+.btn-ghost{background:var(--bg4);color:var(--pale);border:1px solid var(--rim)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-icon{width:28px;height:28px;padding:0;justify-content:center;border-radius:var(--r3)}
+
+/* SEGS */
+.segs{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.seg{padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--rim);color:var(--mute);background:var(--bg4)}
+.seg.on{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+.seg-n{background:rgba(0,0,0,.2);padding:0 7px;border-radius:99px;margin-right:5px}
+
+/* FBAR */
+.fbar{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.fbar input,.fbar select,.fi{padding:7px 11px;background:var(--bg4);border:1px solid var(--rim);border-radius:var(--r2);color:var(--white);font-family:var(--font);font-size:12px}
+.fbar input:focus,.fbar select:focus,.fi:focus{outline:none;border-color:var(--gold)}
+.fbar input{flex:1;min-width:180px}
+.fi{width:100%;display:block;margin-bottom:8px}
+select.fi option{background:var(--bg3)}
+
+/* UPLOAD */
+.upz{border:2px dashed var(--rim2);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;background:var(--bg4)}
+.upz:hover,.upz.drag{border-color:var(--gold);background:var(--gd)}
+.upz input{display:none}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(8,9,15,.88);z-index:500;display:none;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(3px)}
+.overlay.on{display:flex}
+.modal{background:var(--bg3);border:1px solid var(--rim2);border-radius:14px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--rim)}
+.mt{font-size:16px;font-weight:800}
+.mc{background:none;border:none;color:var(--mute);font-size:18px;cursor:pointer}
+.mc:hover{color:var(--red)}
+.mb{padding:20px}
+.mf{display:flex;gap:8px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--rim)}
+.fl{display:block;font-size:11px;font-weight:700;color:var(--pale);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.fg{margin-bottom:12px}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.g2{grid-template-columns:1fr}}
+
+/* COURIER CARD */
+.cc{background:var(--bg3);border:1px solid var(--rim);border-radius:var(--r);padding:14px}
+.cc-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;flex-shrink:0}
+.cc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}
+.cc-stat{text-align:center;background:var(--bg4);border-radius:var(--r3);padding:7px}
+.cc-sv{font-size:16px;font-weight:900;font-family:var(--mono)}
+
+/* PAGINATION */
+.pgn{display:flex;gap:5px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.pgbtn{background:var(--bg4);border:1px solid var(--rim);color:var(--pale);padding:4px 9px;border-radius:var(--r3);font-family:var(--font);font-size:11px;cursor:pointer}
+.pgbtn.on,.pgbtn:hover{background:var(--gd);border-color:var(--gb);color:var(--gold)}
+
+/* TOAST */
+#toasts{position:fixed;bottom:18px;left:18px;z-index:2000;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--bg3);border:1px solid var(--rim2);border-radius:var(--r2);padding:9px 14px;font-size:12px;min-width:220px;display:flex;align-items:center;gap:7px;animation:tin .25s ease}
+@keyframes tin{from{transform:translateX(-16px);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.s{border-right:3px solid var(--grn)}.toast.e{border-right:3px solid var(--red)}
+.toast.w{border-right:3px solid var(--gold)}.toast.i{border-right:3px solid var(--blu)}
+
+/* ALERT */
+.alert-banner{background:linear-gradient(90deg,rgba(255,58,92,.18),rgba(255,58,92,.05));border:1px solid var(--rb);border-radius:var(--r);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.alert-ico{width:38px;height:38px;background:var(--rd);border:1px solid var(--rb);border-radius:var(--r2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#1a0b35,#0d1a4a,#051830);border-radius:var(--r);padding:24px 28px;margin-bottom:18px;border:1px solid var(--rim2);position:relative;overflow:hidden}
+.hero-prog-track{background:rgba(255,255,255,.1);border-radius:99px;height:8px;overflow:hidden;margin-top:8px}
+.hero-prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--pur),var(--blu));transition:width .8s ease}
+
+/* STATUS TAGS */
+.st-wd{background:var(--bld);color:var(--blu)}
+.st-ic{background:var(--ord);color:var(--orn)}
+.st-dl{background:var(--grd);color:var(--grn)}
+.st-rt{background:var(--rd);color:var(--red)}
+.st-tr{background:var(--prd);color:var(--pur)}
+.st-dd{background:var(--rd);color:var(--red)}
+
+@media(max-width:768px){.kgrid{grid-template-columns:repeat(2,1fr)}.page{padding:12px}}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div style="font-size:40px">🕊️</div>
+  <div class="spinner"></div>
+  <div style="color:var(--gold);font-weight:700;font-size:16px">النورس للتوصيل</div>
+  <div style="color:var(--mute);font-size:12px" id="lmsg">جارٍ الاتصال...</div>
+</div>
+
+<div id="login-screen">
+  <div class="lbox">
+    <div class="llogo">🕊️</div>
+    <div class="lbrand">النورس للتوصيل</div>
+    <div class="lsub">منظومة الإدارة الأونلاين v2</div>
+    <label>اسم المستخدم</label>
+    <input type="text" id="lu" placeholder="اسم المستخدم" onkeydown="if(event.key==='Enter')doLogin()">
+    <label>كلمة المرور</label>
+    <input type="password" id="lp" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="lbtn" onclick="doLogin()">دخول</button>
+    <div class="lerr" id="lerr">❌ بيانات دخول غلط</div>
+    <div style="margin-top:16px;font-size:11px;color:var(--mute);text-align:right;line-height:2">
+      مدير: <b style="color:var(--pale)">mohamed / admin123</b><br>
+      موظف: <b style="color:var(--pale)">ahmed / emp123</b>
+    </div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="topbar">
+    <div class="tlogo">🕊️ النورس <small>v2</small></div>
+    <div class="tspace"></div>
+    <div class="sync-ok" id="sync-ind"><span class="sdot"></span><span id="sync-txt">متصل</span></div>
+    <div class="tclock" id="clock">--:--</div>
+    <div class="tuser">
+      <div class="tav" id="uav">م</div>
+      <span id="uname">—</span>
+    </div>
+    <button class="lout" onclick="doLogout()">خروج</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" onclick="gTab('home')">🏠 الرئيسية</div>
+    <div class="tab" onclick="gTab('shipments')">📦 الطرود <span class="tbadge" id="tb-crit">0</span></div>
+    <div class="tab" onclick="gTab('drivers')">👤 المناديب</div>
+    <div class="tab" onclick="gTab('returns')">↩️ المرتجعات</div>
+    <div class="tab" onclick="gTab('transfers')">🔄 التحويلات</div>
+    <div class="tab" onclick="gTab('whatsapp')">💬 واتساب</div>
+    <div class="tab manager-only" onclick="gTab('master')">⚙️ البيانات الثابتة</div>
+    <div class="tab manager-only" onclick="gTab('upload')">📥 رفع الطرود</div>
+  </div>
+
+  <!-- HOME -->
+  <div class="page on" id="tab-home">
+    <div class="hero">
+      <div style="font-size:22px;font-weight:900;margin-bottom:4px" id="greeting">مرحباً 👋</div>
+      <div style="font-size:12px;color:var(--pale)" id="hero-date">—</div>
+      <div style="font-size:11px;color:var(--pale);margin-top:8px">
+        📦 <span id="h-total">0</span> طرد &nbsp;|&nbsp;
+        👤 <span id="h-drivers">0</span> مندوب &nbsp;|&nbsp;
+        ✅ تواصل: <span id="h-ct">0</span>/<span id="h-tc">0</span>
+      </div>
+      <div class="hero-prog-track"><div class="hero-prog-fill" id="h-fill" style="width:0%"></div></div>
+      <div style="font-size:11px;color:var(--mute);margin-top:5px"><span id="h-pct">0%</span> تقدم التواصل</div>
+    </div>
+    <div class="alert-banner" id="alert-banner" onclick="gTab('shipments')" style="display:none">
+      <div class="alert-ico">⚠️</div>
+      <div><div style="font-size:14px;font-weight:800;color:var(--red)" id="alert-title">طرود حرجة!</div>
+      <div style="font-size:12px;color:var(--pale)">اضغط للاطلاع</div></div>
+      <div style="margin-right:auto;color:var(--red)">←</div>
+    </div>
+    <div class="kgrid">
+      <div class="kcard gold"><div class="klbl">إجمالي الطرود</div><div class="kval" id="k-total">0</div></div>
+      <div class="kcard red"><div class="klbl">حرج +15 يوم</div><div class="kval" id="k-crit">0</div></div>
+      <div class="kcard gold"><div class="klbl">تحذير 7-15 يوم</div><div class="kval" id="k-warn">0</div></div>
+      <div class="kcard grn"><div class="klbl">في الموعد</div><div class="kval" id="k-ok">0</div></div>
+      <div class="kcard blu"><div class="klbl">في الشركة</div><div class="kval" id="k-company">0</div></div>
+      <div class="kcard orn"><div class="klbl">مرتجعة</div><div class="kval" id="k-ret">0</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="ctitle">🏴 أكثر المناطق تأخيراً</div><div id="area-lb"></div></div>
+      <div class="card"><div class="ctitle">👤 المناديب الأكثر تأخيراً</div><div id="drv-lb"></div></div>
+    </div>
+  </div>
+
+  <!-- SHIPMENTS -->
+  <div class="page" id="tab-shipments">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:18px;font-weight:800">📦 الطرود</div>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-ghost btn-sm" onclick="loadShipments()">↻ تحديث</button>
+      </div>
+    </div>
+    <div class="segs">
+      <div class="seg on" id="sg-all" onclick="setSeg('all')">الكل <span class="seg-n" id="sn-all">0</span></div>
+      <div class="seg" id="sg-wait" onclick="setSeg('wait')">انتظار تواصل <span class="seg-n" id="sn-wait">0</span></div>
+      <div class="seg" id="sg-company" onclick="setSeg('company')">في الشركة <span class="seg-n" id="sn-company">0</span></div>
+      <div class="seg" id="sg-late" onclick="setSeg('late')">متأخرة <span class="seg-n" id="sn-late">0</span></div>
+    </div>
+    <div class="fbar">
+      <input type="text" id="s-q" placeholder="🔍 بحث بالكود، العميل، المندوب..." oninput="renderShipments()">
+      <select id="s-fd" onchange="renderShipments()"><option value="">كل التأخير</option><option value="critical">+15 يوم</option><option value="warning">7-15 يوم</option><option value="ok">في الموعد</option></select>
+      <select id="s-fr" onchange="renderShipments()"><option value="">كل المناطق</option></select>
+      <select id="s-fb" onchange="renderShipments()"><option value="">كل الفروع</option></select>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--rim);border-radius:var(--r);overflow:hidden">
+      <div style="padding:9px 14px;border-bottom:1px solid var(--rim);display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;font-weight:700">الطرود</span>
+        <span class="badge b-red" id="s-cnt">0</span>
+        <button class="btn btn-wa btn-sm" style="margin-right:auto" onclick="bulkWA()">💬 واتساب للمحددين</button>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr>
+            <th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th>
+            <th>الكود</th><th>العميل</th><th>هاتف العميل</th>
+            <th>المندوب</th><th>المنطقة</th><th>الفرع</th>
+            <th>التأخير</th><th>الحالة</th><th>التواصل</th><th>رقم التواصل</th><th>إجراء</th>
+          </tr></thead>
+          <tbody id="s-tbody"><tr><td colspan="12" style="text-align:center;padding:32px;color:var(--mute)">ارفع ملف الطرود أولاً</td></tr></tbody>
+        </table>
+      </div>
+      <div style="padding:10px 14px;border-top:1px solid var(--rim);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--mute);flex:1" id="s-pginfo">—</span>
+        <div class="pgn" id="s-pgn"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRIVERS -->
+  <div class="page" id="tab-drivers">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:18px;font-weight:800">👤 المناديب</div>
+      <button class="btn btn-wa btn-sm" onclick="sendAllDrivers()">💬 واتساب للكل</button>
+    </div>
+    <div class="fbar">
+      <input type="text" id="d-q" placeholder="🔍 بحث..." oninput="renderDrivers()">
+      <select id="d-fr" onchange="renderDrivers()"><option value="">كل المناطق</option></select>
+    </div>
+    <div id="d-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+      <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--mute)">ارفع بيانات الطرود أولاً</div>
+    </div>
+  </div>
+
+  <!-- RETURNS -->
+  <div class="page" id="tab-returns">
+    <div style="font-size:18px;font-weight:800;margin-bottom:14px">↩️ المرتجعات</div>
+    <div class="fbar">
+      <select id="r-loc" onchange="renderReturns()">
+        <option value="">كل المواقع</option>
+        <option value="with_driver">مع المندوب</option>
+        <option value="in_warehouse">في المخزن</option>
+        <option value="returned_to_store">تم التسليم للمتجر</option>
+      </select>
+      <select id="r-rsn" onchange="renderReturns()">
+        <option value="">كل الأسباب</option>
+        <option value="customer_refused">رفض العميل</option>
+        <option value="wrong_address">عنوان خاطئ</option>
+        <option value="no_answer">لا يرد</option>
+        <option value="damaged">تالف</option>
+        <option value="other">أخرى</option>
+      </select>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>كود الطرد</th><th>العميل</th><th>المندوب</th><th>السبب</th><th>الموقع</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+        <tbody id="r-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--mute)">لا مرتجعات</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TRANSFERS -->
+  <div class="page" id="tab-transfers">
+    <div style="font-size:18px;font-weight:800;margin-bottom:14px">🔄 التحويلات</div>
+    <div class="fbar">
+      <select id="t-st" onchange="renderTransfers()">
+        <option value="">كل الحالات</option>
+        <option value="pending">معلقة</option>
+        <option value="accepted">مقبولة</option>
+        <option value="rejected">مرفوضة</option>
+      </select>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>كود الطرد</th><th>من فرع</th><th>إلى فرع</th><th>الحالة</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+        <tbody id="t-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--mute)">لا تحويلات</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- WHATSAPP -->
+  <div class="page" id="tab-whatsapp">
+    <div style="font-size:18px;font-weight:800;margin-bottom:14px">💬 مراسلة المناديب</div>
+    <div class="g2">
+      <div class="card">
+        <div class="ctitle">📤 إرسال سريع</div>
+        <div class="fg"><label class="fl">المندوب</label><select class="fi" id="wa-d"><option value="">— اختر —</option></select></div>
+        <div class="fg"><label class="fl">القالب</label><select class="fi" id="wa-t" onchange="previewTpl()"><option value="">— اختر قالب —</option></select></div>
+        <div class="fg"><label class="fl">الرسالة</label><textarea class="fi" id="wa-msg" rows="5" style="resize:vertical"></textarea></div>
+        <div style="display:flex;gap:7px">
+          <button class="btn btn-wa" onclick="sendWA()">📱 فتح واتساب</button>
+          <button class="btn btn-ghost" onclick="copyWA()">📋 نسخ</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">📋 القوالب</div>
+        <div id="tpl-list"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">📣 إرسال جماعي</div>
+      <div class="fbar" style="margin-bottom:10px">
+        <select class="fi" style="width:auto" id="bulk-t"><option value="">— اختر قالب —</option></select>
+        <select class="fi" style="width:auto" id="bulk-r"><option value="">كل المناطق</option></select>
+        <select class="fi" style="width:auto" id="bulk-f">
+          <option value="all">كل المناديب</option>
+          <option value="critical">المتأخرون +15 يوم</option>
+          <option value="warning">المتأخرون 7-15 يوم</option>
+          <option value="company">في الشركة (مدير الفرع)</option>
+        </select>
+      </div>
+      <button class="btn btn-wa" onclick="startBulk()">📱 بدء الإرسال</button>
+      <div id="bulk-log" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- MASTER DATA -->
+  <div class="page manager-only" id="tab-master">
+    <div style="font-size:18px;font-weight:800;margin-bottom:14px">⚙️ البيانات الثابتة</div>
+    <div class="segs" style="margin-bottom:16px">
+      <div class="seg on" id="ms-regions" onclick="setMasterTab('regions')">🗺️ المناطق</div>
+      <div class="seg" id="ms-branches" onclick="setMasterTab('branches')">🏢 الفروع</div>
+      <div class="seg" id="ms-drivers" onclick="setMasterTab('drivers')">👤 المناديب</div>
+      <div class="seg" id="ms-stores" onclick="setMasterTab('stores')">🏪 المتاجر</div>
+    </div>
+    <div id="master-content"></div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="page manager-only" id="tab-upload">
+    <div style="font-size:18px;font-weight:800;margin-bottom:14px">📥 رفع الطرود اليومية</div>
+    <div class="card" style="border-right:3px solid var(--gold)">
+      <div class="ctitle">📦 رفع ملف الطرود <span style="font-size:10px;background:var(--gd);color:var(--gold);padding:2px 7px;border-radius:99px">يتراكم تاريخياً</span></div>
+      <div class="upz" id="upz" onclick="document.getElementById('fi-up').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="dropFile(event)">
+        <input type="file" id="fi-up" accept=".xlsx,.xls,.csv" onchange="handleUpload(event)">
+        <div style="font-size:28px;margin-bottom:8px">📂</div>
+        <div style="font-size:13px;font-weight:700">اسحب ملف الطرود أو انقر</div>
+        <div style="font-size:11px;color:var(--mute);margin-top:4px">يقبل .xlsx .xls .csv</div>
+      </div>
+      <div id="up-status" style="margin-top:10px;font-size:12px;color:var(--mute)"></div>
+      <div style="margin-top:12px;background:var(--bg4);border-radius:var(--r2);padding:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--pale);margin-bottom:6px">أعمدة Excel المقبولة:</div>
+        <div style="font-size:11px;color:var(--mute);line-height:2">
+          <span style="color:var(--blu);font-family:var(--mono)">كود الطرد / الكود</span> ،
+          <span style="color:var(--blu);font-family:var(--mono)">المرسل / اسم العميل</span> ،
+          <span style="color:var(--blu);font-family:var(--mono)">هاتف العميل / المستلم</span><br>
+          <span style="color:var(--blu);font-family:var(--mono)">المندوب</span> ،
+          <span style="color:var(--blu);font-family:var(--mono)">رقم المندوب</span> ،
+          <span style="color:var(--blu);font-family:var(--mono)">المنطقة / المدينة</span> ،
+          <span style="color:var(--blu);font-family:var(--mono)">الفرع الحالى</span><br>
+          <span style="color:var(--blu);font-family:var(--mono)">عدد الايام المتأخرة / التأخير (أيام)</span> ،
+          <span style="color:var(--blu);font-family:var(--mono)">الحالة</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">🗄️ إحصائيات قاعدة البيانات</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px" id="db-stats">
+        <div style="background:var(--bg4);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--gold);font-family:var(--mono)" id="db-s">—</div><div style="font-size:11px;color:var(--mute)">طرود</div></div>
+        <div style="background:var(--bg4);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--blu);font-family:var(--mono)" id="db-d">—</div><div style="font-size:11px;color:var(--mute)">مناديب</div></div>
+        <div style="background:var(--bg4);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--grn);font-family:var(--mono)" id="db-b">—</div><div style="font-size:11px;color:var(--mute)">فروع</div></div>
+        <div style="background:var(--bg4);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--pur);font-family:var(--mono)" id="db-r">—</div><div style="font-size:11px;color:var(--mute)">مرتجعات</div></div>
+        <div style="background:var(--bg4);border-radius:var(--r2);padding:12px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--grn);font-family:var(--mono)" id="db-ct">—</div><div style="font-size:11px;color:var(--mute)">تواصل اليوم</div></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="loadDbStats()">↻ تحديث</button>
+        <button class="btn btn-red btn-sm" onclick="clearTodayShipments()">🗑️ مسح طرود اليوم</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHIPMENT DETAIL MODAL -->
+<div class="overlay" id="sd-modal">
+  <div class="modal">
+    <div class="mh"><div class="mt" id="sd-title">تفاصيل الطرد</div><button class="mc" onclick="closeM('sd-modal')">✕</button></div>
+    <div class="mb" id="sd-body"></div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('sd-modal')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- MASTER EDIT MODAL -->
+<div class="overlay" id="me-modal">
+  <div class="modal">
+    <div class="mh"><div class="mt" id="me-title">تعديل</div><button class="mc" onclick="closeM('me-modal')">✕</button></div>
+    <div class="mb" id="me-body"></div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeM('me-modal')">إلغاء</button>
+      <button class="btn btn-gold" onclick="saveMasterRecord()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- RETURN MODAL -->
+<div class="overlay" id="ret-modal">
+  <div class="modal">
+    <div class="mh"><div class="mt">تسجيل مرتجع</div><button class="mc" onclick="closeM('ret-modal')">✕</button></div>
+    <div class="mb">
+      <input type="hidden" id="ret-sid">
+      <div class="fg"><label class="fl">سبب الإرجاع</label>
+        <select class="fi" id="ret-reason">
+          <option value="customer_refused">رفض العميل</option>
+          <option value="wrong_address">عنوان خاطئ</option>
+          <option value="no_answer">لا يرد</option>
+          <option value="damaged">تالف</option>
+          <option value="other">أخرى</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">موقع الطرد الحالي</label>
+        <select class="fi" id="ret-loc">
+          <option value="with_driver">مع المندوب</option>
+          <option value="in_warehouse">في المخزن</option>
+          <option value="returned_to_store">تم تسليمه للمتجر</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">ملاحظات</label><textarea class="fi" id="ret-notes" rows="3"></textarea></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeM('ret-modal')">إلغاء</button>
+      <button class="btn btn-red" onclick="saveReturn()">↩️ تسجيل الإرجاع</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ══════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════
+const SB_URL = 'https://kdlcoqcwqlxawejxfjss.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkbGNvcWN3cWx4YXdlanhmanNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzU0NzIsImV4cCI6MjA5MDIxMTQ3Mn0.rlxHDrJagHk8EiPsdVPy62bDicPXhwjZn0g6cdVQkv0';
+const H = { 'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json' };
+
+async function sb(table,method='GET',body=null,params=''){
+  const res = await fetch(`${SB_URL}/rest/v1/${table}${params}`,{
+    method,headers:H,body:body?JSON.stringify(body):null
+  });
+  if(!res.ok){ const e=await res.text(); throw new Error(e); }
+  return method==='GET'?res.json():true;
+}
+async function sbUp(table,data){
+  const res=await fetch(`${SB_URL}/rest/v1/${table}`,{
+    method:'POST',
+    headers:{...H,'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify(Array.isArray(data)?data:[data])
+  });
+  if(!res.ok){const e=await res.text();throw new Error(e);}
+  return true;
+}
+async function sbCount(table){
+  const res=await fetch(`${SB_URL}/rest/v1/${table}?select=id`,{
+    headers:{...H,'Prefer':'count=exact','Range':'0-0'}
+  });
+  const cr=res.headers.get('content-range');
+  if(cr){const m=cr.match(/\/(\d+)/);if(m)return parseInt(m[1]);}
+  return 0;
+}
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+const USERS={
+  'mohamed':{pass:'admin123',role:'manager',name:'محمد سعد'},
+  'ahmed':  {pass:'emp123',  role:'employee',name:'أحمد علي'},
+  'fatima': {pass:'emp123',  role:'employee',name:'فاطمة محمد'},
+};
+let CU=null;
+
+function doLogin(){
+  const u=document.getElementById('lu').value.trim().toLowerCase();
+  const p=document.getElementById('lp').value;
+  if(USERS[u]&&USERS[u].pass===p){
+    CU={username:u,...USERS[u]};
+    sessionStorage.setItem('nu',JSON.stringify(CU));
+    startApp();
+  } else {
+    document.getElementById('lerr').style.display='block';
+  }
+}
+function doLogout(){
+  sessionStorage.removeItem('nu');CU=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let shipments=[],regions=[],branches=[],drivers=[],stores=[];
+let returns_data=[],transfers_data=[],contacted=new Set();
+let checked=new Set(),seg='all',sPage=1;
+const PER=25;
+let CFG={critDays:15,warnDays:7,discount:50,company:'النورس للتوصيل'};
+let WA_TPLS=[
+  {id:'reminder',name:'تذكير بالتسليم',tag:'عام',body:'السلام عليكم {اسم} 👋\nتذكير من {شركة}\nلديك {طرود} طرد متأخر\nأعلى تأخير: {أيام} يوم\n⚠️ يرجى اتخاذ إجراء فوري\nشكراً'},
+  {id:'urgent',name:'تنبيه عاجل',tag:'عاجل',body:'🚨 تنبيه عاجل — {شركة}\n\nالأخ/الأخت {اسم}\nلديك {طرود} طرد في وضع حرج\n({أيام} يوم)\n\nيرجى التواصل فوراً مع المشرف'},
+  {id:'company',name:'طرد في الشركة',tag:'فرع',body:'مرحباً {اسم}\nيوجد طرد في الفرع بانتظارك\nرقم الطرد: {كود}\nيرجى الاستلام في أقرب وقت\n— {شركة}'},
+  {id:'return',name:'طلب إرجاع',tag:'إرجاع',body:'{اسم} السلام عليكم\nبخصوص الطرود المرتجعة ({طرود} طرد)\nيرجى تسليمها للفرع اليوم\nشكراً — {شركة}'},
+];
+let masterTab='regions',meTable='',meRecord=null;
+
+// ══════════════════════════════════════════
+// CLASSIFY
+// ══════════════════════════════════════════
+function cls(d){ return d>CFG.critDays?'critical':d>CFG.warnDays?'warning':'ok'; }
+function normPhone(p){
+  if(!p)return'';
+  p=p.replace(/[^0-9]/g,'');
+  if(p.startsWith('0')&&p.length===10)p='218'+p.slice(1);
+  return p;
+}
+function dBadge(d){
+  const c=cls(d);
+  return c==='critical'?`<span class="dp-c">🔴 ${d}ي</span>`:
+         c==='warning' ?`<span class="dp-w">🟡 ${d}ي</span>`:
+                        `<span class="dp-o">🟢 ${d}ي</span>`;
+}
+function stBadge(s){
+  const map={
+    'with_driver':  ['st-wd','مع المندوب'],
+    'in_company':   ['st-ic','في الشركة'],
+    'delayed':      ['st-dd','متأخر'],
+    'delivered':    ['st-dl','مُسلَّم'],
+    'returned':     ['st-rt','مرتجع'],
+    'transferred':  ['st-tr','محوّل'],
+    'مع المندوب':   ['st-wd','مع المندوب'],
+    'مؤجلة مع المندوب':['st-dd','مؤجلة'],
+    'في الشركة':    ['st-ic','في الشركة'],
+  };
+  const [cls,label]=map[s]||['b-dim',s||'—'];
+  return`<span class="badge ${cls}">${label}</span>`;
+}
+function ctBadge(id){ return contacted.has(String(id))?'<span class="badge b-grn">✅ تم</span>':'<span class="badge b-dim">⏳</span>'; }
+
+// ══════════════════════════════════════════
+// SYNC STATE
+// ══════════════════════════════════════════
+function setSyncState(st,msg){
+  const el=document.getElementById('sync-ind');
+  el.className=st==='ok'?'sync-ok':st==='err'?'sync-ok sync-err':'sync-ok sync-busy';
+  document.getElementById('sync-txt').textContent=msg;
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+async function init(){
+  document.getElementById('lmsg').textContent='جارٍ الاتصال بـ Supabase...';
+  try {
+    await sb('settings','GET',null,'?select=key&limit=1');
+    document.getElementById('loading').classList.add('hide');
+    const saved=sessionStorage.getItem('nu');
+    if(saved){CU=JSON.parse(saved);startApp();}
+    else document.getElementById('login-screen').style.display='flex';
+  } catch(e) {
+    document.getElementById('lmsg').innerHTML=`<div style="color:var(--red)">❌ خطأ في الاتصال</div><button onclick="location.reload()" class="btn btn-gold" style="margin-top:12px">↻ إعادة المحاولة</button>`;
+  }
+}
+
+async function startApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  applyRole();startClock();
+  document.getElementById('hero-date').textContent=new Date().toLocaleDateString('ar-LY',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  await loadAll();
+}
+
+function applyRole(){
+  const mgr=CU.role==='manager';
+  document.getElementById('uname').textContent=CU.name;
+  document.getElementById('uav').textContent=CU.name[0];
+  document.querySelectorAll('.manager-only').forEach(el=>el.style.display=mgr?'':'none');
+}
+
+async function loadAll(){
+  setSyncState('busy','تحميل...');
+  try {
+    const [sh,rg,br,dr,st,ct,tpls,cfg]=await Promise.all([
+      sb('shipments_view','GET',null,'?order=delay_days.desc&limit=3000'),
+      sb('regions','GET',null,'?select=*&order=name'),
+      sb('branches','GET',null,'?select=*&order=name'),
+      sb('drivers','GET',null,'?select=*&order=name'),
+      sb('stores','GET',null,'?select=*&order=name'),
+      sb('contacted_log','GET',null,'?select=shipment_id'),
+      sb('wa_templates','GET',null,'?select=*'),
+      sb('settings','GET',null,'?select=key,value'),
+    ]);
+    shipments=sh; regions=rg; branches=br; drivers=dr; stores=st;
+    contacted=new Set(ct.map(r=>r.shipment_id));
+    if(tpls.length) WA_TPLS=tpls.map(t=>({id:t.id,name:t.name,tag:t.tag,body:t.body}));
+    cfg.forEach(r=>{
+      if(r.key==='critDays')CFG.critDays=parseInt(r.value)||15;
+      if(r.key==='warnDays')CFG.warnDays=parseInt(r.value)||7;
+      if(r.key==='company')CFG.company=r.value;
+    });
+    buildDropdowns();
+    refreshAll();
+    setSyncState('ok','متصل');
+    loadReturns();loadTransfers();loadDbStats();
+  } catch(e){
+    setSyncState('err','خطأ');
+    toast('خطأ في التحميل: '+e.message,'e');
+  }
+}
+
+async function loadShipments(){
+  setSyncState('busy','تحديث...');
+  try {
+    const [sh,ct]=await Promise.all([
+      sb('shipments_view','GET',null,'?order=delay_days.desc&limit=3000'),
+      sb('contacted_log','GET',null,'?select=shipment_id'),
+    ]);
+    shipments=sh;
+    contacted=new Set(ct.map(r=>r.shipment_id));
+    refreshAll();
+    setSyncState('ok','متصل');
+  } catch(e){setSyncState('err','خطأ');toast('خطأ: '+e.message,'e');}
+}
+
+async function loadReturns(){
+  try { returns_data=await sb('returns','GET',null,'?select=*,shipments(tracking_code,customer_name),drivers(name),branches(name)&order=created_at.desc&limit=500'); renderReturns(); }
+  catch(e){ console.warn('returns',e); }
+}
+async function loadTransfers(){
+  try { transfers_data=await sb('transfers','GET',null,'?select=*,shipments(tracking_code),from_branch:branches!from_branch_id(name),to_branch:branches!to_branch_id(name)&order=created_at.desc&limit=500'); renderTransfers(); }
+  catch(e){ console.warn('transfers',e); }
+}
+
+// ══════════════════════════════════════════
+// UPLOAD SHIPMENTS
+// ══════════════════════════════════════════
+function dropFile(e){e.preventDefault();e.currentTarget.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);}
+function handleUpload(e){const f=e.target.files[0];if(f)processFile(f);}
+
+function g(...keys){return r=>{for(const k of keys){const v=r[k];if(v!==undefined&&String(v).trim()!=='')return String(v).trim();}return'';};}
+
+function processFile(file){
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      await uploadShipments(rows,file.name);
+    }catch(err){toast('خطأ في قراءة الملف: '+err.message,'e');}
+  };
+  reader.readAsBinaryString(file);
+}
+
+async function uploadShipments(rows,fname){
+  const st=document.getElementById('up-status');
+  st.innerHTML='⏳ جارٍ المعالجة...';
+  setSyncState('busy','رفع...');
+  // Deduplicate by tracking_code
+  const seen=new Set();
+  const data=[];
+  for(const [i,r] of rows.entries()){
+    const code=g('الكود','كود الطرد','tracking_code','ParcelCode','Code')(r)||('P-'+Date.now()+'-'+i);
+    if(seen.has(code))continue;
+    seen.add(code);
+    let days=0;
+    try{days=parseInt(g('عدد الايام المتأخرة','التأخير (أيام)','التأخير','delay_days','الأيام')(r))||0;}catch{}
+    const rawSt=g('الحالة','status','Status')(r)||'with_driver';
+    const statusMap={'مع المندوب':'with_driver','مؤجلة مع المندوب':'with_driver','في الشركة':'in_company','مرتجع':'returned','تم التسليم':'delivered','محول':'transferred'};
+    const status=statusMap[rawSt]||rawSt||'with_driver';
+    data.push({
+      tracking_code: code,
+      customer_name: g('المرسل','اسم العميل','customer_name','ClientName')(r)||'—',
+      customer_phone:g('المستلم','هاتف العميل','customer_phone')(r)||'—',
+      status, delay_days:days,
+      upload_date:new Date().toISOString().split('T')[0],
+    });
+  }
+  try{
+    const BATCH=200;
+    for(let i=0;i<data.length;i+=BATCH){
+      await sbUp('shipments',data.slice(i,i+BATCH));
+    }
+    st.innerHTML=`<span style="color:var(--grn)">✅ تم رفع ${data.length} طرد</span>`;
+    toast(`✅ ${data.length} طرد مرفوع`,'s');
+    await loadShipments();loadDbStats();
+    setSyncState('ok','متصل');
+  }catch(e){
+    setSyncState('err','خطأ');
+    toast('خطأ في الرفع: '+e.message,'e');
+    st.innerHTML=`<span style="color:var(--red)">❌ ${e.message}</span>`;
+  }
+}
+
+// ══════════════════════════════════════════
+// DROPDOWNS
+// ══════════════════════════════════════════
+function buildDropdowns(){
+  const rn=regions.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
+  const bn=branches.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  const dn=[...new Set(shipments.map(s=>s.driver_name).filter(Boolean))].sort();
+  ['s-fr','d-fr','bulk-r'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">كل المناطق</option>'+rn;});
+  ['s-fb'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">كل الفروع</option>'+bn;});
+  const wad=document.getElementById('wa-d');
+  if(wad)wad.innerHTML='<option value="">— اختر —</option>'+dn.map(n=>`<option>${n}</option>`).join('');
+  const opts=WA_TPLS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  ['wa-t','bulk-t'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">— اختر قالب —</option>'+opts;});
+}
+
+// ══════════════════════════════════════════
+// REFRESH
+// ══════════════════════════════════════════
+function refreshAll(){ updateKPIs();renderHome();renderShipments();renderDrivers();renderWA(); }
+
+function updateKPIs(){
+  const crit=shipments.filter(s=>cls(s.delay_days)==='critical').length;
+  const warn=shipments.filter(s=>cls(s.delay_days)==='warning').length;
+  const ok=shipments.filter(s=>cls(s.delay_days)==='ok').length;
+  const comp=shipments.filter(s=>s.status==='in_company').length;
+  const ret=shipments.filter(s=>s.status==='returned').length;
+  document.getElementById('k-total').textContent=shipments.length;
+  document.getElementById('k-crit').textContent=crit;
+  document.getElementById('k-warn').textContent=warn;
+  document.getElementById('k-ok').textContent=ok;
+  document.getElementById('k-company').textContent=comp;
+  document.getElementById('k-ret').textContent=ret;
+  document.getElementById('tb-crit').textContent=crit;
+  document.getElementById('h-total').textContent=shipments.length;
+  const ud=[...new Set(shipments.map(s=>s.driver_name).filter(Boolean))];
+  document.getElementById('h-drivers').textContent=ud.length||drivers.length;
+  const tc=ud.length||drivers.length||1;
+  document.getElementById('h-ct').textContent=contacted.size;
+  document.getElementById('h-tc').textContent=tc;
+  const pct=Math.round(contacted.size/tc*100);
+  document.getElementById('h-pct').textContent=pct+'%';
+  document.getElementById('h-fill').style.width=pct+'%';
+  const ab=document.getElementById('alert-banner');
+  if(crit>0){ab.style.display='flex';document.getElementById('alert-title').textContent=`${crit} طرد في خطر حرج (+${CFG.critDays} يوم)!`;}
+  else ab.style.display='none';
+}
+
+// ══════════════════════════════════════════
+// HOME
+// ══════════════════════════════════════════
+function renderHome(){
+  updateKPIs();
+  const h=new Date().getHours();
+  document.getElementById('greeting').textContent=(h<12?'صباح الخير':h<17?'مساء الخير':'مساء النور')+' 👋';
+  const crit=shipments.filter(s=>cls(s.delay_days)==='critical');
+  renderLB('area-lb',crit,'region_name','var(--red)');
+  renderLB('drv-lb',crit,'driver_name','var(--gold)');
+}
+function renderLB(id,data,key,color){
+  const map={};data.forEach(s=>{const k=s[key]||'—';map[k]=(map[k]||0)+1;});
+  const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const max=sorted[0]?.[1]||1;
+  const el=document.getElementById(id);
+  if(!sorted.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--mute)">✅ لا تأخيرات</div>';return;}
+  el.innerHTML=sorted.map(([n,c],i)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--rim)">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--dim);width:20px">#${i+1}</div>
+    <div style="flex:1;font-size:12px;font-weight:600">${n}</div>
+    <div style="width:60px;background:var(--bg5);border-radius:99px;height:4px"><div style="width:${c/max*100}%;height:100%;background:${color};border-radius:99px"></div></div>
+    <div style="font-family:var(--mono);font-size:12px;font-weight:900;color:${color}">${c}</div>
+  </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// SHIPMENTS TABLE
+// ══════════════════════════════════════════
+function setSeg(s){
+  seg=s;['all','wait','company','late'].forEach(x=>{const el=document.getElementById('sg-'+x);if(el)el.className=x===s?'seg on':'seg';});
+  sPage=1;renderShipments();
+}
+
+function renderShipments(){
+  const q=(document.getElementById('s-q')?.value||'').toLowerCase();
+  const fd=document.getElementById('s-fd')?.value||'';
+  const fr=document.getElementById('s-fr')?.value||'';
+  const fb=document.getElementById('s-fb')?.value||'';
+  let list=shipments;
+  const wait=list.filter(s=>!contacted.has(String(s.id)));
+  const comp=list.filter(s=>s.status==='in_company');
+  const late=list.filter(s=>cls(s.delay_days)!=='ok');
+  document.getElementById('sn-all').textContent=list.length;
+  document.getElementById('sn-wait').textContent=wait.length;
+  document.getElementById('sn-company').textContent=comp.length;
+  document.getElementById('sn-late').textContent=late.length;
+  if(seg==='wait')list=wait;
+  else if(seg==='company')list=comp;
+  else if(seg==='late')list=late;
+  list=list.filter(s=>{
+    if(fd&&cls(s.delay_days)!==fd)return false;
+    if(fr&&s.region_id_val!==fr&&s.region_name!==fr)return false;
+    if(fb&&s.branch_name!==fb)return false;
+    if(q&&!`${s.tracking_code} ${s.customer_name} ${s.driver_name} ${s.region_name} ${s.branch_name}`.toLowerCase().includes(q))return false;
+    return true;
+  });
+  list.sort((a,b)=>b.delay_days-a.delay_days);
+  const total=list.length,totalP=Math.max(1,Math.ceil(total/PER));
+  if(sPage>totalP)sPage=1;
+  const page=list.slice((sPage-1)*PER,sPage*PER);
+  document.getElementById('s-cnt').textContent=total+' طرد';
+  const tbody=document.getElementById('s-tbody');
+  if(!page.length){tbody.innerHTML=`<tr><td colspan="12" style="text-align:center;padding:28px;color:var(--mute)">لا نتائج</td></tr>`;return;}
+  tbody.innerHTML=page.map(s=>{
+    const sid=String(s.id).replace(/"/g,'&quot;');
+    return`<tr class="pr" data-sid="${sid}">
+      <td onclick="event.stopPropagation()"><input type="checkbox" data-sid="${sid}" ${checked.has(String(s.id))?'checked':''} onchange="this.checked?checked.add(this.dataset.sid):checked.delete(this.dataset.sid)"></td>
+      <td class="code-cell">${s.tracking_code}</td>
+      <td style="color:var(--white);font-weight:600">${s.customer_name||'—'}</td>
+      <td style="font-family:var(--mono);font-size:11px">${s.customer_phone||'—'}</td>
+      <td style="color:var(--white)">${s.driver_name||'—'}</td>
+      <td><span class="badge b-pur" style="font-size:10px">${s.region_name||'—'}</span></td>
+      <td style="font-size:11px;color:var(--mute)">${s.branch_name||'—'}</td>
+      <td>${dBadge(s.delay_days)}</td>
+      <td>${stBadge(s.status)}</td>
+      <td>${ctBadge(s.id)}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--grn)">${s.contact_phone||'—'}</td>
+      <td onclick="event.stopPropagation()">
+        <div style="display:flex;gap:3px">
+          <button class="btn btn-wa btn-icon btn-sm" data-a="wa" data-sid="${sid}" title="واتساب">💬</button>
+          <button class="btn btn-ghost btn-icon btn-sm" data-a="detail" data-sid="${sid}" title="تفاصيل">👁</button>
+          <button class="btn btn-red btn-icon btn-sm" data-a="return" data-sid="${sid}" title="مرتجع">↩️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  if(!tbody._del){
+    tbody._del=true;
+    tbody.addEventListener('click',e=>{
+      const btn=e.target.closest('[data-a]');
+      const row=e.target.closest('.pr');
+      if(btn){e.stopPropagation();const sid=btn.dataset.sid;const a=btn.dataset.a;
+        if(a==='wa')doWA(sid);else if(a==='detail')openDetail(sid);else if(a==='return')openReturnModal(sid);}
+      else if(row&&!e.target.closest('input'))openDetail(row.dataset.sid);
+    });
+  }
+  const info=document.getElementById('s-pginfo'),pgn=document.getElementById('s-pgn');
+  const s=(sPage-1)*PER+1,end=Math.min(sPage*PER,total);
+  info.textContent=total>0?`${s}–${end} من ${total} طرد`:'لا نتائج';
+  pgn.innerHTML='';
+  for(let i=Math.max(1,sPage-2);i<=Math.min(totalP,sPage+2);i++){
+    const b=document.createElement('button');
+    b.className='pgbtn'+(i===sPage?' on':'');b.textContent=i;
+    b.onclick=()=>{sPage=i;renderShipments();};pgn.appendChild(b);
+  }
+}
+function toggleAll(el){document.querySelectorAll('#s-tbody input[type=checkbox]').forEach(cb=>{cb.checked=el.checked;el.checked?checked.add(cb.dataset.sid):checked.delete(cb.dataset.sid);});}
+
+// ══════════════════════════════════════════
+// SHIPMENT DETAIL
+// ══════════════════════════════════════════
+function openDetail(sid){
+  sid=String(sid);
+  const s=shipments.find(x=>String(x.id)===sid);if(!s)return;
+  document.getElementById('sd-title').textContent=s.tracking_code;
+  document.getElementById('sd-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div style="background:var(--bg4);border-radius:var(--r2);padding:12px;border-right:3px solid var(--gold)">
+        <div style="font-size:10px;font-weight:700;color:var(--gold);margin-bottom:8px">بيانات الطرد</div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>الكود</span><span style="font-family:var(--mono);color:var(--blu)">${s.tracking_code}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>العميل</span><span style="font-weight:700">${s.customer_name||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>هاتف العميل</span><span style="font-family:var(--mono)">${s.customer_phone||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>الحالة</span><span>${stBadge(s.status)}</span></div>
+      </div>
+      <div style="background:var(--bg4);border-radius:var(--r2);padding:12px;border-right:3px solid var(--blu)">
+        <div style="font-size:10px;font-weight:700;color:var(--blu);margin-bottom:8px">المندوب والموقع</div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>المندوب</span><span style="font-weight:700">${s.driver_name||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>المنطقة</span><span>${s.region_name||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>الفرع</span><span>${s.branch_name||'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>مدير الفرع</span><span>${s.branch_manager||'—'}</span></div>
+      </div>
+    </div>
+    <div style="background:var(--bg4);border-radius:var(--r2);padding:12px;margin-bottom:12px;border-right:3px solid var(--grn)">
+      <div style="font-size:10px;font-weight:700;color:var(--grn);margin-bottom:8px">منطق التواصل الذكي</div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>التأخير</span><span>${dBadge(s.delay_days)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>التواصل</span><span>${ctBadge(s.id)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--rim)"><span>اسم المتواصَل معه</span><span style="font-weight:700;color:var(--grn)">${s.contact_name||'—'}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px"><span>رقم التواصل</span><span style="font-family:var(--mono);color:var(--grn)">${s.contact_phone||'—'}</span></div>
+    </div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn btn-wa" onclick="doWA('${s.id}');closeM('sd-modal')">💬 واتساب</button>
+      <button class="btn btn-ghost" onclick="markCt('${s.id}');closeM('sd-modal')">✅ تم التواصل</button>
+      <button class="btn btn-red" onclick="openReturnModal('${s.id}');closeM('sd-modal')">↩️ تسجيل مرتجع</button>
+    </div>`;
+  document.getElementById('sd-modal').classList.add('on');
+}
+
+// ══════════════════════════════════════════
+// DRIVERS
+// ══════════════════════════════════════════
+function renderDrivers(){
+  const q=(document.getElementById('d-q')?.value||'').toLowerCase();
+  const fr=document.getElementById('d-fr')?.value||'';
+  const stats={};
+  shipments.forEach(s=>{
+    const n=s.driver_name||'—';
+    if(!stats[n])stats[n]={name:n,phone:s.driver_phone||'',region:s.region_name||'',branch:s.branch_name||'',total:0,crit:0,warn:0,ok:0,maxD:0};
+    const st=stats[n];st.total++;const c=cls(s.delay_days);st[c]++;
+    if(s.delay_days>st.maxD)st.maxD=s.delay_days;
+  });
+  // also add drivers from DB who may have 0 shipments
+  drivers.forEach(d=>{if(!stats[d.name])stats[d.name]={name:d.name,phone:d.phone||'',region:'',branch:'',total:0,crit:0,warn:0,ok:0,maxD:0};});
+  let list=Object.values(stats).filter(d=>{
+    if(fr&&d.region!==fr)return false;
+    if(q&&!`${d.name} ${d.region} ${d.branch}`.toLowerCase().includes(q))return false;
+    return true;
+  }).sort((a,b)=>b.maxD-a.maxD);
+  const AV=['linear-gradient(135deg,#9b6dff,#4f8aff)','linear-gradient(135deg,#ff3a5c,#ff7c2a)','linear-gradient(135deg,#22d896,#4f8aff)','linear-gradient(135deg,#f5c842,#ff7c2a)'];
+  const grid=document.getElementById('d-grid');
+  if(!list.length){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--mute)">لا بيانات</div>';return;}
+  grid.innerHTML=list.map((d,i)=>{
+    const rate=d.total?Math.round(d.ok/d.total*100):0;
+    const rc=rate>70?'var(--grn)':rate>40?'var(--gold)':'var(--red)';
+    const ph=normPhone(d.phone);
+    const sn=d.name.replace(/"/g,'&quot;');
+    return`<div class="cc">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div class="cc-av" style="background:${AV[i%AV.length]}">${d.name[0]}</div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:13px">${d.name}</div>
+          <div style="font-size:11px;color:var(--mute)">${d.region}${d.branch?' • '+d.branch:''}</div>
+          <div style="font-size:10px;color:var(--dim);font-family:var(--mono)">${d.phone||'—'}</div>
+        </div>
+        <span class="badge ${d.crit>0?'b-red':d.warn>0?'b-gold':'b-grn'}">${d.crit>0?'حرج':d.warn>0?'تحذير':'طبيعي'}</span>
+      </div>
+      <div class="cc-stats">
+        <div class="cc-stat"><div class="cc-sv" style="color:var(--gold)">${d.total}</div><div style="font-size:10px;color:var(--mute)">طرد</div></div>
+        <div class="cc-stat"><div class="cc-sv" style="color:var(--red)">${d.crit}</div><div style="font-size:10px;color:var(--mute)">حرج</div></div>
+        <div class="cc-stat"><div class="cc-sv" style="color:${rc}">${rate}%</div><div style="font-size:10px;color:var(--mute)">موعد</div></div>
+      </div>
+      <div style="background:var(--bg5);border-radius:99px;height:5px;overflow:hidden;margin-bottom:10px"><div style="width:${rate}%;height:100%;background:${rc};border-radius:99px"></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-wa btn-sm" data-ca="wa" data-cn="${sn}" data-ph="${ph}">💬 واتساب</button>
+        <button class="btn btn-ghost btn-sm" data-ca="ct" data-cn="${sn}">✅ تم التواصل</button>
+      </div>
+    </div>`;
+  }).join('');
+  if(!grid._del){
+    grid._del=true;
+    grid.addEventListener('click',e=>{
+      const btn=e.target.closest('[data-ca]');if(!btn)return;
+      e.stopPropagation();
+      const a=btn.dataset.ca,n=btn.dataset.cn||'',ph=btn.dataset.ph||'';
+      if(a==='wa')sendToDriver(n,ph);
+      if(a==='ct')markDriverCt(n);
+    });
+  }
+}
+
+// ══════════════════════════════════════════
+// RETURNS
+// ══════════════════════════════════════════
+function renderReturns(){
+  const loc=document.getElementById('r-loc')?.value||'';
+  const rsn=document.getElementById('r-rsn')?.value||'';
+  const locMap={with_driver:'مع المندوب',in_warehouse:'في المخزن',returned_to_store:'تسليم للمتجر'};
+  const rsnMap={customer_refused:'رفض العميل',wrong_address:'عنوان خاطئ',no_answer:'لا يرد',damaged:'تالف',other:'أخرى'};
+  let list=returns_data.filter(r=>{
+    if(loc&&r.location!==loc)return false;
+    if(rsn&&r.reason!==rsn)return false;
+    return true;
+  });
+  const tbody=document.getElementById('r-tbody');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--mute)">لا مرتجعات</td></tr>';return;}
+  tbody.innerHTML=list.map(r=>`<tr>
+    <td class="code-cell">${r.shipments?.tracking_code||'—'}</td>
+    <td>${r.shipments?.customer_name||'—'}</td>
+    <td>${r.drivers?.name||'—'}</td>
+    <td><span class="badge b-orn">${rsnMap[r.reason]||r.reason||'—'}</span></td>
+    <td><span class="badge ${r.location==='returned_to_store'?'b-grn':r.location==='in_warehouse'?'b-gold':'b-red'}">${locMap[r.location]||r.location||'—'}</span></td>
+    <td style="font-size:11px;color:var(--mute)">${r.created_at?r.created_at.slice(0,10):'—'}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="updateReturnLocation('${r.id}')">تحديث الموقع</button></td>
+  </tr>`).join('');
+}
+
+function openReturnModal(sid){
+  document.getElementById('ret-sid').value=sid;
+  document.getElementById('ret-notes').value='';
+  document.getElementById('ret-modal').classList.add('on');
+}
+async function saveReturn(){
+  const sid=document.getElementById('ret-sid').value;
+  const s=shipments.find(x=>String(x.id)===sid);
+  if(!s)return;
+  const reason=document.getElementById('ret-reason').value;
+  const location=document.getElementById('ret-loc').value;
+  const notes=document.getElementById('ret-notes').value;
+  try{
+    await sbUp('returns',[{shipment_id:s.id,reason,location,notes}]);
+    await sbUp('shipments',[{id:s.id,tracking_code:s.tracking_code,status:'returned',customer_name:s.customer_name,customer_phone:s.customer_phone}]);
+    toast('✅ تم تسجيل المرتجع','s');
+    closeM('ret-modal');
+    await loadShipments();loadReturns();
+  }catch(e){toast('خطأ: '+e.message,'e');}
+}
+async function updateReturnLocation(rid){
+  const locs=['with_driver','in_warehouse','returned_to_store'];
+  const labels=['مع المندوب','في المخزن','تم التسليم للمتجر'];
+  const r=returns_data.find(x=>x.id===rid);
+  const cur=locs.indexOf(r?.location||'with_driver');
+  const next=locs[(cur+1)%locs.length];
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/returns?id=eq.${rid}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({location:next})});
+    if(!res.ok)throw new Error(await res.text());
+    toast(`موقع الطرد: ${labels[(cur+1)%locs.length]}`,'s');
+    loadReturns();
+  }catch(e){toast('خطأ: '+e.message,'e');}
+}
+
+// ══════════════════════════════════════════
+// TRANSFERS
+// ══════════════════════════════════════════
+function renderTransfers(){
+  const st=document.getElementById('t-st')?.value||'';
+  const stMap={pending:'معلقة',accepted:'مقبولة',rejected:'مرفوضة'};
+  let list=transfers_data.filter(t=>!st||t.status===st);
+  const tbody=document.getElementById('t-tbody');
+  if(!list.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--mute)">لا تحويلات</td></tr>';return;}
+  tbody.innerHTML=list.map(t=>`<tr>
+    <td class="code-cell">${t.shipments?.tracking_code||'—'}</td>
+    <td>${t.from_branch?.name||'—'}</td>
+    <td>${t.to_branch?.name||'—'}</td>
+    <td><span class="badge ${t.status==='accepted'?'b-grn':t.status==='rejected'?'b-red':'b-gold'}">${stMap[t.status]||t.status}</span></td>
+    <td style="font-size:11px;color:var(--mute)">${t.created_at?t.created_at.slice(0,10):'—'}</td>
+    <td>
+      ${t.status==='pending'?`<div style="display:flex;gap:4px">
+        <button class="btn btn-grn btn-sm" onclick="acceptTransfer('${t.id}')">قبول</button>
+        <button class="btn btn-red btn-sm" onclick="rejectTransfer('${t.id}')">رفض</button>
+      </div>`:'—'}
+    </td>
+  </tr>`).join('');
+}
+async function acceptTransfer(id){ await updateTransfer(id,'accepted'); }
+async function rejectTransfer(id){ await updateTransfer(id,'rejected'); }
+async function updateTransfer(id,status){
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/transfers?id=eq.${id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify({status,accepted_at:new Date().toISOString()})});
+    if(!res.ok)throw new Error(await res.text());
+    toast(`تم ${status==='accepted'?'قبول':'رفض'} التحويل`,'s');
+    loadTransfers();
+  }catch(e){toast('خطأ: '+e.message,'e');}
+}
+
+// ══════════════════════════════════════════
+// WHATSAPP
+// ══════════════════════════════════════════
+function renderWA(){
+  buildDropdowns();
+  document.getElementById('tpl-list').innerHTML=WA_TPLS.map(t=>`
+    <div style="background:var(--bg4);border:1px solid var(--rim);border-radius:var(--r2);padding:12px;margin-bottom:8px;cursor:pointer" onclick="applyTpl('${t.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;font-weight:700">${t.name}</span>
+        <span class="badge b-dim" style="font-size:10px">${t.tag}</span>
+      </div>
+      <div style="font-size:11px;color:var(--mute)">${t.body.substring(0,70)}...</div>
+    </div>`).join('');
+}
+function applyTpl(id){const t=WA_TPLS.find(x=>x.id===id);if(!t)return;document.getElementById('wa-t').value=id;previewTpl();}
+function previewTpl(){
+  const id=document.getElementById('wa-t').value;
+  const name=document.getElementById('wa-d').value||'المندوب';
+  if(!id){document.getElementById('wa-msg').value='';return;}
+  const t=WA_TPLS.find(x=>x.id===id);if(!t)return;
+  document.getElementById('wa-msg').value=buildMsg(t.body,name,getDriverStats(name));
+}
+function getDriverStats(name){
+  const sh=shipments.filter(s=>s.driver_name===name);
+  return{total:sh.length,crit:sh.filter(s=>cls(s.delay_days)==='critical').length,maxDelay:sh.length?Math.max(...sh.map(s=>s.delay_days)):0,branch:sh[0]?.branch_name||'—'};
+}
+function buildMsg(body,name,stats){
+  return body.replace(/{اسم}/g,name).replace(/{طرود}/g,stats.total||0).replace(/{أيام}/g,stats.maxDelay||0).replace(/{فرع}/g,stats.branch||'—').replace(/{خصم}/g,CFG.discount).replace(/{شركة}/g,CFG.company).replace(/{كود}/g,'—');
+}
+function openWA(phone,msg){
+  if(phone){window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');}
+  else{navigator.clipboard.writeText(msg).catch(()=>{});toast('لا يوجد رقم — تم نسخ الرسالة','w');}
+}
+function sendWA(){
+  const name=document.getElementById('wa-d').value;
+  const msg=document.getElementById('wa-msg').value;
+  if(!name){toast('اختر مندوباً','e');return;}
+  if(!msg.trim()){toast('اختر قالباً','e');return;}
+  const s=shipments.find(x=>x.driver_name===name);
+  const ph=normPhone(s?.driver_phone||'');
+  openWA(ph,msg);markDriverCt(name);
+}
+function copyWA(){const msg=document.getElementById('wa-msg').value;if(!msg){toast('لا رسالة','e');return;}navigator.clipboard.writeText(msg).then(()=>toast('تم النسخ','s'));}
+function doWA(sid){
+  sid=String(sid);
+  const s=shipments.find(x=>String(x.id)===sid);if(!s)return;
+  const ph=normPhone(s.contact_phone||s.driver_phone||'');
+  const tpl=cls(s.delay_days)==='critical'?WA_TPLS.find(t=>t.id==='urgent')||WA_TPLS[0]:WA_TPLS[0];
+  const stats=getDriverStats(s.driver_name||'');
+  const msg=buildMsg(tpl.body,s.driver_name||'المندوب',stats)+'\n\n📦 رقم الطرد: '+s.tracking_code+'\nالعميل: '+s.customer_name+(s.customer_phone&&s.customer_phone!=='—'?'\nهاتف العميل: '+s.customer_phone:'');
+  openWA(ph,msg);markCt(sid);
+}
+function sendToDriver(name,phone){
+  const tpl=WA_TPLS.find(t=>t.id==='reminder')||WA_TPLS[0];
+  const msg=buildMsg(tpl.body,name,getDriverStats(name));
+  openWA(phone,msg);markDriverCt(name);
+}
+function sendAllDrivers(){
+  const ud=[...new Set(shipments.map(s=>s.driver_name).filter(Boolean))];
+  ud.forEach(n=>{const s=shipments.find(x=>x.driver_name===n);const ph=normPhone(s?.driver_phone||'');const msg=buildMsg(WA_TPLS[0].body,n,getDriverStats(n));if(ph)window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank');});
+  toast(`واتساب لـ ${ud.length} مندوب`,'s');
+}
+function startBulk(){
+  const tid=document.getElementById('bulk-t').value;
+  const region=document.getElementById('bulk-r').value;
+  const filter=document.getElementById('bulk-f').value;
+  if(!tid){toast('اختر قالب','e');return;}
+  const t=WA_TPLS.find(x=>x.id===tid);if(!t)return;
+  let targets=[];
+  if(filter==='company'){
+    targets=shipments.filter(s=>s.status==='in_company').map(s=>({name:s.branch_manager||s.branch_name,phone:normPhone(s.branch_manager_phone||'')}));
+  } else {
+    const stats={};
+    shipments.forEach(s=>{
+      if(!stats[s.driver_name])stats[s.driver_name]={name:s.driver_name,phone:normPhone(s.driver_phone||''),region:s.region_name,total:0,crit:0,warn:0,maxDelay:0,branch:s.branch_name||'—'};
+      const st=stats[s.driver_name];st.total++;const c=cls(s.delay_days);st[c]++;if(s.delay_days>st.maxDelay)st.maxDelay=s.delay_days;
+    });
+    targets=Object.values(stats).filter(d=>{
+      if(region&&d.region!==region)return false;
+      if(filter==='critical')return d.crit>0;
+      if(filter==='warning')return d.warn>0&&d.crit===0;
+      return true;
+    });
+  }
+  const log=document.getElementById('bulk-log');
+  log.innerHTML=`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">إرسال لـ ${targets.length}:</div>`;
+  targets.forEach((d,i)=>{
+    const msg=filter==='company'?buildMsg(t.body,d.name,{total:0,crit:0,maxDelay:0,branch:d.name}):buildMsg(t.body,d.name,d);
+    const url=d.phone?'https://wa.me/'+d.phone+'?text='+encodeURIComponent(msg):'';
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--rim);font-size:12px';
+    div.innerHTML=`<span style="color:var(--pale)">${i+1}. ${d.name}</span>${url?`<a href="${url}" target="_blank" class="btn btn-wa btn-sm" style="text-decoration:none">💬 فتح</a>`:'<span style="color:var(--mute)">لا رقم</span>'}`;
+    log.appendChild(div);
+  });
+  toast(`${targets.length} رسالة جاهزة`,'s');
+}
+function bulkWA(){
+  if(!checked.size){toast('حدد طروداً','w');return;}
+  const byD={};
+  [...checked].forEach(sid=>{const s=shipments.find(x=>String(x.id)===sid);if(!s)return;if(!byD[s.driver_name])byD[s.driver_name]=normPhone(s.driver_phone||'');});
+  Object.entries(byD).forEach(([n,ph])=>sendToDriver(n,ph));
+  toast(`واتساب لـ ${Object.keys(byD).length} مندوب`,'s');
+}
+
+// ══════════════════════════════════════════
+// MARK CONTACTED
+// ══════════════════════════════════════════
+async function markCt(sid){
+  sid=String(sid);
+  contacted.add(sid);
+  updateKPIs();
+  document.querySelectorAll(`#s-tbody .pr[data-sid="${sid}"] td:nth-child(10)`).forEach(td=>td.innerHTML='<span class="badge b-grn">✅ تم</span>');
+  try{ await sbUp('contacted_log',[{shipment_id:sid}]); }
+  catch(e){ console.warn('markCt',e); }
+}
+async function markDriverCt(name){
+  const ids=shipments.filter(s=>s.driver_name===name).map(s=>String(s.id));
+  ids.forEach(id=>contacted.add(id));
+  updateKPIs();
+  toast(`✅ تم تسجيل التواصل مع ${name}`,'s');
+  try{ await sbUp('contacted_log',ids.map(id=>({shipment_id:id,contacted_by:name}))); }
+  catch(e){ console.warn('markDriverCt',e); }
+}
+
+// ══════════════════════════════════════════
+// MASTER DATA CRUD
+// ══════════════════════════════════════════
+function setMasterTab(t){
+  masterTab=t;
+  ['regions','branches','drivers','stores'].forEach(x=>{const el=document.getElementById('ms-'+x);if(el)el.className=x===t?'seg on':'seg';});
+  renderMasterContent();
+}
+async function renderMasterContent(){
+  const mc=document.getElementById('master-content');
+  const tables={regions:'🗺️ المناطق',branches:'🏢 الفروع',drivers:'👤 المناديب',stores:'🏪 المتاجر'};
+  mc.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <span style="font-size:15px;font-weight:700">${tables[masterTab]}</span>
+    <button class="btn btn-gold btn-sm" onclick="openMasterAdd('${masterTab}')">+ إضافة</button>
+  </div><div id="master-table"><div style="text-align:center;padding:24px;color:var(--mute)">⏳ تحميل...</div></div>`;
+  try {
+    const data=await sb(masterTab,'GET',null,'?select=*&order=created_at.desc&limit=200');
+    const fields={
+      regions:['name','code','description'],
+      branches:['name','manager_name','manager_phone','address'],
+      drivers:['name','phone','phone2','status','vehicle_type'],
+      stores:['name','phone','address'],
+    };
+    const labels={name:'الاسم',code:'الكود',description:'الوصف',manager_name:'المدير',manager_phone:'هاتف المدير',address:'العنوان',phone:'الهاتف',phone2:'هاتف2',status:'الحالة',vehicle_type:'وسيلة النقل'};
+    const flds=fields[masterTab]||['name'];
+    document.getElementById('master-table').innerHTML=`<div class="tw"><table>
+      <thead><tr>${flds.map(f=>`<th>${labels[f]||f}</th>`).join('')}<th>إجراء</th></tr></thead>
+      <tbody>${data.length?data.map(r=>`<tr>
+        ${flds.map(f=>`<td>${r[f]||'—'}</td>`).join('')}
+        <td><div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="openMasterEdit('${masterTab}','${r.id}')">✏️</button>
+          <button class="btn btn-red btn-sm" onclick="deleteMaster('${masterTab}','${r.id}')">🗑️</button>
+        </div></td>
+      </tr>`).join(''):'<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--mute)">لا بيانات</td></tr>'}</tbody>
+    </table></div>`;
+  } catch(e){ document.getElementById('master-table').innerHTML=`<div style="color:var(--red);padding:16px">خطأ: ${e.message}</div>`; }
+}
+
+const masterFields={
+  regions:[{k:'name',l:'اسم المنطقة',req:true},{k:'code',l:'كود'},{k:'description',l:'وصف'}],
+  branches:[{k:'name',l:'اسم الفرع',req:true},{k:'manager_name',l:'اسم المدير'},{k:'manager_phone',l:'هاتف المدير'},{k:'address',l:'العنوان'}],
+  drivers:[{k:'name',l:'اسم المندوب',req:true},{k:'phone',l:'الهاتف'},{k:'phone2',l:'هاتف2'},{k:'vehicle_type',l:'وسيلة النقل'}],
+  stores:[{k:'name',l:'اسم المتجر',req:true},{k:'phone',l:'الهاتف'},{k:'address',l:'العنوان'}],
+};
+
+function openMasterAdd(table){
+  meTable=table;meRecord=null;
+  document.getElementById('me-title').textContent='إضافة — '+{regions:'منطقة',branches:'فرع',drivers:'مندوب',stores:'متجر'}[table];
+  const fields=masterFields[table]||[];
+  document.getElementById('me-body').innerHTML=fields.map(f=>`<div class="fg"><label class="fl">${f.l}${f.req?' *':''}</label><input class="fi" id="mf-${f.k}" value="" placeholder="${f.l}"></div>`).join('');
+  document.getElementById('me-modal').classList.add('on');
+}
+async function openMasterEdit(table,id){
+  meTable=table;
+  try {
+    const data=await sb(table,'GET',null,`?id=eq.${id}&select=*`);
+    meRecord=data[0];
+    document.getElementById('me-title').textContent='تعديل — '+meRecord.name;
+    const fields=masterFields[table]||[];
+    document.getElementById('me-body').innerHTML=fields.map(f=>`<div class="fg"><label class="fl">${f.l}</label><input class="fi" id="mf-${f.k}" value="${meRecord[f.k]||''}"></div>`).join('');
+    document.getElementById('me-modal').classList.add('on');
+  }catch(e){toast('خطأ: '+e.message,'e');}
+}
+async function saveMasterRecord(){
+  const fields=masterFields[meTable]||[];
+  const body={};
+  for(const f of fields){const v=document.getElementById('mf-'+f.k)?.value||'';if(f.req&&!v){toast('يرجى ملء الحقول الإلزامية','w');return;}body[f.k]=v||null;}
+  try{
+    if(meRecord){
+      const res=await fetch(`${SB_URL}/rest/v1/${meTable}?id=eq.${meRecord.id}`,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+      if(!res.ok)throw new Error(await res.text());
+    } else {
+      await sbUp(meTable,[body]);
+    }
+    toast('✅ تم الحفظ','s');closeM('me-modal');renderMasterContent();
+    await loadAll();
+  }catch(e){toast('خطأ: '+e.message,'e');}
+}
+async function deleteMaster(table,id){
+  if(!confirm('حذف هذا السجل؟'))return;
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`,{method:'DELETE',headers:H});
+    if(!res.ok)throw new Error(await res.text());
+    toast('تم الحذف','w');renderMasterContent();
+  }catch(e){toast('خطأ: '+e.message,'e');}
+}
+
+// ══════════════════════════════════════════
+// DB STATS
+// ══════════════════════════════════════════
+async function loadDbStats(){
+  try{
+    const [s,d,b,r,ct]=await Promise.all([sbCount('shipments'),sbCount('drivers'),sbCount('branches'),sbCount('returns'),sbCount('contacted_log')]);
+    document.getElementById('db-s').textContent=s;
+    document.getElementById('db-d').textContent=d;
+    document.getElementById('db-b').textContent=b;
+    document.getElementById('db-r').textContent=r;
+    document.getElementById('db-ct').textContent=ct;
+  }catch(e){console.warn('stats',e);}
+}
+async function clearTodayShipments(){
+  if(!confirm('مسح طرود اليوم؟'))return;
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/shipments?upload_date=eq.${today}`,{method:'DELETE',headers:H});
+    if(!res.ok)throw new Error(await res.text());
+    toast('تم مسح طرود اليوم','w');
+    await loadShipments();loadDbStats();
+  }catch(e){toast('خطأ: '+e.message,'e');}
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function gTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('tab-'+id)?.classList.add('on');
+  document.querySelectorAll('.tab').forEach(t=>{if((t.getAttribute('onclick')||'').includes("'"+id+"'"))t.classList.add('on');});
+  const renders={home:renderHome,shipments:renderShipments,drivers:renderDrivers,returns:renderReturns,transfers:renderTransfers,whatsapp:renderWA,master:()=>{setMasterTab(masterTab);renderMasterContent();},upload:loadDbStats};
+  if(renders[id])renders[id]();
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function closeM(id){document.getElementById(id)?.classList.remove('on');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('overlay'))e.target.classList.remove('on');});
+
+function toast(msg,type='i'){
+  const ico={s:'✅',e:'🚨',w:'⚠️',i:'ℹ️'};
+  const d=document.createElement('div');d.className=`toast ${type}`;
+  d.innerHTML=`<span>${ico[type]}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(()=>d.remove(),3400);
+}
+function startClock(){
+  const tick=()=>{
+    document.getElementById('clock').textContent=new Date().toLocaleTimeString('ar-LY',{hour:'2-digit',minute:'2-digit'});
+    const h=new Date().getHours();
+    document.getElementById('greeting').textContent=(h<12?'صباح الخير':h<17?'مساء الخير':'مساء النور')+' 👋';
+  };tick();setInterval(tick,30000);
+}
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
